@@ -5,164 +5,127 @@ function eval() {
 }
 
 function expressionCalculator(expr) {
+    const oper = [")", "(", "+", "-", "*", "/"];
 
-    class ExpressionError extends Error {
+    if (checkBrackets(expr) === false) throw new Error("ExpressionError: Brackets must be paired");
 
-        constructor(message) {
+    if (expr.split("").includes(" ") === false) expr = addSpace(expr);
 
-            super(message);
-            this.name = "ExpressionError";
+    let arr = deleteSpace(expr.split(" "));
 
-        }
-    }
-    let SYArr = [];
-    let operators = [];
-    let res = [];
-    let zeroDivision = false;
+    let expArr = transformArr(arr);
 
-    let precDictionary = {
-        "+": 2,
-        "-": 2,
-        "*": 3,
-        "/": 3
-    };
+    function transformArr(expArr) {
+        let stack = [];
+        let transformArr = [];
 
-    let exprQuantified = [];
+        for (let i = 0; i < expArr.length; i++) {
 
-    if(/ /.test(expr)) {
+            if (oper.includes(expArr[i]) === false) transformArr.push(expArr[i]);
 
-        exprQuantified = expr.split(/ +/);
+            else if (expArr[i] == "(") stack.push(expArr[i]);
 
-    } else {
+            else if (expArr[i] == ")") {
+                while (true) {
+                    let pop = "";
 
-        exprQuantified = expr.split("");
+                    if (stack.length > 0) pop = stack.pop();
+                    else throw new Error("ExpressionError: Brackets must be paired");
 
-    }
-
-    exprQuantified.map((char) => {
-
-        if(/\d+/g.test(char)) {
-
-            SYArr.push(char);
-
-        } else {
-
-            if(/[\-+*/]/g.test(char)) {
-
-                while ((precDictionary[operators[operators.length - 1]] >= precDictionary[char]) && operators[operators.length - 1] !== "(") {
-                    
-                    SYArr.push(operators.pop());
-
+                    if (pop !== "(") transformArr.push(pop);
+                    else break;
                 }
 
-                operators.push(char);
 
-            } else {
+            } else if (oper.includes(expArr[i])) {
 
-                if(char === "(") {
+                while (true) {
 
-                    operators.push(char);
-
-                } else {
-
-                    if(char === ")") {
-
-                        while (operators[operators.length - 1] !== "(") {
-
-                            SYArr.push(operators.pop());
-
-                        }
-
-                        if (operators[operators.length - 1] === "(") {
-
-                            operators.pop();
-
-                        }
-
+                    if (checkIndexOf(expArr[i], stack[stack.length - 1])) {
+                        transformArr.push(stack.pop());
+                    } else {
+                        stack.push(expArr[i]);
+                        break;
                     }
                 }
+
             }
         }
-    });
 
-    while (operators.length > 0) {
+        while (stack.length > 0) {
+            transformArr.push(stack.pop());
+        }
 
-        SYArr.push(operators.pop());
-
+        return transformArr;
     }
 
-    SYArr.forEach(sign => {
+    function calculating(expArr) {
+        let result = [];
 
-        //Brackets expr to res
+        for (let i = 0; i < expArr.length; i++) {
 
-        if (/\d+/g.test(sign)) res.push(sign);
 
-        //Partial calc
+            if (oper.includes(expArr[i]) === false) result.push(expArr[i]);
 
-        switch (sign) {
 
-            case "+":
+            if (oper.includes(expArr[i])) {
+                let b = result.pop();
+                let a = result.pop();
 
-                removeTopAddCalculated(Number(res[res.length - 2]) + Number(res[res.length - 1]), res);
-                break;
+                if (expArr[i] === "+") result.push(Number(a) + Number(b));
 
-            case "-":
+                if (expArr[i] === "-") result.push(Number(a) - Number(b));
 
-                removeTopAddCalculated(Number(res[res.length - 2]) - Number(res[res.length - 1]), res);
-                break;
+                if (expArr[i] === "*") result.push(Number(a) * Number(b));
 
-            case "/":
-
-                if (res[res.length - 1] == 0) {
-                    zeroDivision = true;
+                if (expArr[i] === "/") {
+                    if (Number(b) === 0) throw new Error("TypeError: Division by zero.");
+                    else result.push(Number(a) / Number(b));
                 }
-
-                removeTopAddCalculated(Number(res[res.length - 2]) / Number(res[res.length - 1]), res);
-                break;
-
-            case "*":
-
-                removeTopAddCalculated(Number(res[res.length - 2]) * Number(res[res.length - 1]), res);
-                break;
+            }
 
         }
-    });
+        return result[0];
+    }
 
-    const finalRes = res[0];
+    return calculating(expArr);
 
-    // Calculation error in case of unpaired brackets
 
-    if (isNaN(finalRes)) {
+    function checkBrackets(exp) {
+        let open = 0;
+        let close = 0;
 
-        throw new ExpressionError('ExpressionError: Brackets must be paired');
+        for (let key in exp) {
 
-    } else {
-    
-    // Divided by zero
+            if (exp.includes("(")) {
+                open++;
+                exp = exp.replace("(", "");
+            }
+            if (exp.includes(")")) {
+                close++;
+                exp = exp.replace(")", "");
+            }
 
-        if (zeroDivision) {
-
-            throw new TypeError("TypeError: Division by zero.");
-
-        } else {
-    //OK res
-            return finalRes;
-
+            if (open !== close) throw new Error("ExpressionError: Brackets must be paired");
         }
 
     }
 
-    //Support functions
-    
-    function removeTopAddCalculated(miniRes, dest) {
-
-        dest.pop();
-        dest.pop();
-
-        dest.push(miniRes);
-
+    function addSpace(expr) {
+        return expr = expr.split("").join(" ")
     }
+
+    function deleteSpace(expr) {
+        return expr.filter((item) => item !== '');
+    }
+
+    function checkIndexOf(el, lastEl) {
+        return (oper.indexOf(lastEl) > 1 && oper.indexOf(el) > 1 &&
+            oper.indexOf(el) < 4) || (oper.indexOf(lastEl) > 3 && oper.indexOf(el) > 3)
+    }
+
 }
+
 
 module.exports = {
     expressionCalculator
